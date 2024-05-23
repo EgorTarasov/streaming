@@ -26,17 +26,28 @@ func Init(ctx context.Context, brokers []string, consumerTopic string, writerTop
 	}, false)
 	if err != nil && !errors.Is(err, sarama.ErrTopicAlreadyExists) {
 
-		return err
+		log.Info().Str("topic", consumerTopic).Msg("topic  already exists")
 
 	}
+	// FIXME: move init into orchestrator
+	err = admin.CreateTopic("cmd-prediction", &sarama.TopicDetail{
+		NumPartitions:     1,
+		ReplicationFactor: 1,
+	}, false)
+	if err != nil && !errors.Is(err, sarama.ErrTopicAlreadyExists) {
+
+		log.Info().Str("topic", "cmd-prediction").Msg("topic  already exists")
+
+	}
+
 	err = admin.CreateTopic(writerTopic, &sarama.TopicDetail{
 		NumPartitions:     1,
 		ReplicationFactor: 1,
 	}, false)
 	if err != nil && !errors.Is(err, sarama.ErrTopicAlreadyExists) {
-		return err
+		log.Info().Msg("topic  already exists")
 	}
-	log.Info().Msg("created required topics")
+	log.Info().Str("topic", writerTopic).Msg("topic  already exists")
 
 	return nil
 }

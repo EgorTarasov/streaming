@@ -27,6 +27,8 @@ func Run(ctx context.Context) error {
 		return err
 	}
 	s3 := minios3.MustNew(&cfg.S3)
+	// TODO: create topics required for service
+
 	consumer := kafka.MustNewConsumer(&cfg.Consumer, false, time.Second)
 	producer := kafka.MustNewAsyncProducer(&cfg.Consumer, sarama.NewRandomPartitioner, 0)
 	// FIXME: read Only New messages from responses topic

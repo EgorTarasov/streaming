@@ -1,0 +1,23 @@
+postgres:
+  user: user
+  password: password
+  host: 127.0.0.1
+  port: 5432
+  db: dev
+
+s3:
+  host: 127.0.0.1
+  port: 9000
+  access_key: ak
+  secret_key: sk
+  ssl: false
+  buckets:
+    - name: dev
+      region: us-east-1
+      lock: false
+
+kafka:
+  brokers:
+    - host: 127.0.0.1
+      port: 9091
+  topics:

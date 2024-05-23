@@ -25,9 +25,10 @@ func New(c sarama.Consumer, brokers []string, topic string) *consumer {
 }
 
 type PredictionMessage struct {
-	StreamId int64  `json:"streamId"`
-	FrameId  int64  `json:"frameId"`
-	Frame    string `json:"frame"`
+	VideoId int64       `json:"VideoId"`
+	FrameId int64       `json:"FrameId"`
+	Frame   string      `json:"Frame"`
+	Results interface{} `json:"Results"`
 }
 
 // Subscribe Запускает обработку handler по заданным топикам

@@ -10,7 +10,7 @@ type Config struct {
 	Password string `yaml:"password" env:"POSTGRES_PASSWORD"`
 	Host     string `yaml:"host" env:"POSTGRES_HOST"`
 	Port     int    `yaml:"port" env:"POSTGRES_PORT"`
-	DbName   string `yaml:"postgres" env:"POSTGRES_DB"`
+	DbName   string `yaml:"db" env:"POSTGRES_DB"`
 }
 
 func createDsn(cfg *Config) string {

@@ -42,7 +42,7 @@ func (c *controller) processFrame(ctx context.Context, frameId int64, videoId in
 
 	//log.Info().Int("frame len", len(frame)).Msg("new frame")
 	er := c.fp.SendMessage(writer.FrameMessage{
-		VideoId:  0,
+		VideoId:  videoId,
 		FrameId:  uint64(frameId),
 		RawFrame: frame,
 	})

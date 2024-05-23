@@ -12,10 +12,10 @@ import (
 
 // FrameMessage формат сообщений логов
 type FrameMessage struct {
-	VideoId  int64  `json:"streamId"`
-	FrameId  uint64 `json:"frameId"`
+	VideoId  int64  `json:"VideoId"`
+	FrameId  uint64 `json:"FrameId"`
 	RawFrame []byte
-	Frame    string `json:"frame"`
+	Frame    string `json:"Frame"`
 }
 
 // FrameKafkaSender структура с продюсером кафки

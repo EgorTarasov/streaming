@@ -93,6 +93,11 @@ func (c *Controller) RemoveTask(ctx context.Context, id int64) error {
 		Key:   nil,
 		Value: sarama.ByteEncoder(jsonBytes),
 	})
+	c.producer.SendAsyncMessage(ctx, &sarama.ProducerMessage{
+		Topic: "cmd-prediction",
+		Key:   nil,
+		Value: sarama.ByteEncoder(jsonBytes),
+	})
 
 	err = c.repo.UpdateStatus(ctx, id, "DONE")
 	if err != nil {
