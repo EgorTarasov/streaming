@@ -1,0 +1,3 @@
+ultralytics
+kafka-python
+opencv-python

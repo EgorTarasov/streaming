@@ -1,0 +1,127 @@
+version: '3.9'
+
+
+networks:
+    kafka-net:
+        driver: bridge
+
+volumes:
+  zoo_data:
+  zoo_logs:
+  zoo_secret:
+  kafka1_data:
+  s3_data:
+  postgres-data:
+
+
+services:
+  orchestrator:
+    container_name: "orchestrator"
+    build:
+      context: orchestrator/
+      dockerfile: Dockerfile
+    command:
+        - ./main
+    ports:
+      - "9999:9999"
+    restart: always
+
+  framer:
+    build:
+      context: framer/
+      dockerfile: Dockerfile
+    command:
+      - ./main
+    environment:
+      - CMD_TOPIC=frames
+      - CMD_RESPONSE_TOPIC=responses
+      - RESULT_TOPIC=frames-splitted
+      - KAFKA_BROKER=kafka1:29091
+    depends_on:
+      - kafka1
+    restart: always
+
+  detection:
+    build:
+      context: detection/
+      dockerfile: Dockerfile
+    command: "python3 main.py"
+    # настройка загрузки моделей
+    volumes:
+      - ./detection/models:/models/
+    environment:
+      - YOLO_PATH=/models/yolov8n.pt
+      - PREDICTION_TOPIC=prediction
+      - IMAGES_TOPIC=frames-splitted
+      - KAFKA_BROKERS=kafka1:29091
+
+  s3:
+    image: minio/minio
+    container_name: "s3"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - s3_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    command: server --console-address ":9001" /data
+
+  postgres:
+    image: "postgres:16"
+    container_name: "database"
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper:2888:3888
+    healthcheck:
+      test: echo stat | nc localhost 2181
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "2181:2181"
+      - "2888:2888"
+      - "3888:3888"
+    volumes:
+       - zoo_logs:/var/lib/zookeeper/log
+       - zoo_secret:/etc/zookeeper/secrets
+       - zoo_data:/var/lib/zookeeper/data
+
+  kafka1:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka1
+    healthcheck:
+      test: ps augwwx | egrep [S]upportedKafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9091:9091"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTNERS: LISTNER_INT://kafka1:29091,LISTENER_EXT://0.0.0.0:9091
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: LISTNER_INT://kafka1:29091,LISTENER_EXT://localhost:9091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTNER_INT:PLAINTEXT,LISTENER_EXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTNER_INT
+      ZOOKEEPER: zookeeper:2181
+    volumes:
+       - kafka1_data:/mnt/shared/config
+       - kafka1_data:/var/lib/kafka/data
+       - kafka1_data:/etc/kafka/secrets

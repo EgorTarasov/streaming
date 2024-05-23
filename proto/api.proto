@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+option go_package = "./;pb";
+
+service VideoProcessingService {
+  rpc StartProcessing(StartProcessingRequest) returns (StartProcessingResponse);
+  rpc GetProcessingStatus(ProcessIdRequest) returns (GetProcessingStatusResponse);
+  rpc GetProcessingResult(ProcessResultRequest) returns (GetProcessingResultResponse);
+  rpc StopProcessing(ProcessIdRequest) returns (StopProcessingResponse);
+}
+
+message StartProcessingRequest {
+
+  oneof video_source {
+    string url = 1;
+    bytes file = 2;
+  }
+  string title = 3;
+}
+
+message StartProcessingResponse {
+  int64 job_id = 1;
+}
+
+message ProcessIdRequest {
+  int64  job_id = 1;
+}
+
+message ProcessResultRequest{
+  int64 job_id = 1;
+  int64 start_frame = 2;
+  int64 end_frame = 3;
+}
+
+message Frame{
+  int64 frame_number = 1;
+  bytes frame_data = 2;
+}
+
+message ProcessResultResponse {
+  repeated Frame frames = 1;
+}
+
+message StopProcessingResponse {
+  Status status = 1;
+  string error_message = 2;
+}
+
+enum Status {
+  PENDING = 0;
+  PROCESSING = 1;
+  DONE = 2;
+  ERROR = 3;
+}
+
+message GetProcessingStatusResponse{
+  Status status = 1;
+  string error_message = 2;
+  int64 progress = 3; // количество обработанных кадров
+}
+
+message GetProcessingResultResponse {
+  string result = 1;
+}
