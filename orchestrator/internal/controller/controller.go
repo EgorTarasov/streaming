@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"time"
 
 	"github.com/EgorTarasov/streaming/orchestrator/internal/controller/commands"
 	"github.com/EgorTarasov/streaming/orchestrator/internal/repository/postgres"
@@ -132,6 +133,31 @@ func (c *Controller) ProcessResultTopic(ctx context.Context) error {
 		}
 
 	}
+}
+
+type TaskStatusDto struct {
+	VideoId         int64
+	SplitFrames     int64
+	ProcessedFrames int64
+	Status          string
+	CreatedAt       time.Time
+}
+
+// GetTaskStatus получение статуса задачи (кол-во нарезанных и обработанных кадров)
+func (c *Controller) GetTaskStatus(ctx context.Context, taskId int64) (TaskStatusDto, error) {
+
+	res, err := c.repo.GetTaskStatus(ctx, taskId)
+	if err != nil {
+		return TaskStatusDto{}, err
+	}
+	return TaskStatusDto{
+		VideoId:         res.VideoId,
+		SplitFrames:     res.SplitFrames,
+		ProcessedFrames: res.ProcessedFrames,
+		Status:          res.Status,
+		CreatedAt:       res.CreatedAt,
+	}, nil
+
 }
 
 func getServiceType(headers []*sarama.RecordHeader) string {

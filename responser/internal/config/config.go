@@ -10,7 +10,7 @@ type KafkaConf struct {
 	PredictTopic  string `yaml:"predict-topic" env:"PREDICT_TOPIC" env-default:"prediction"`
 	ResponseTopic string `yaml:"response-topic" env:"RESPONSE_TOPIC" env-default:"responses"`
 	ResultTopic   string `yaml:"result-topic" env:"RESULT_TOPIC" env-default:"frames-splitted"`
-	Broker        string `yaml:"kafka-broker" env:"KAFKA_BROKER" env-default:"127.0.0.1:9091"`
+	Broker        string `yaml:"kafka-broker" env:"KAFKA_BROKER" env-default:"kafka1:29091"`
 }
 
 type Config struct {

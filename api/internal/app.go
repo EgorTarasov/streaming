@@ -2,18 +2,21 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strconv"
 
 	"github.com/EgorTarasov/streaming/api/internal/config"
 	"github.com/EgorTarasov/streaming/api/internal/service"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 func Run(ctx context.Context) error {
 	app := fiber.New()
 
 	cfg := config.MustNew()
+	log.Info().Interface("cfg", cfg)
 	client := service.New(cfg.Service.Host, cfg.Service.Port)
 
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -21,8 +24,6 @@ func Run(ctx context.Context) error {
 	})
 
 	app.Post("/start/video", func(c *fiber.Ctx) error {
-		// get file from c.Request().Body
-		// Get first file from form field "document":
 		multiPartFile, err := c.FormFile("video")
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -113,7 +114,7 @@ func Run(ctx context.Context) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
 
-	if err := app.Listen(":3000"); err != nil {
+	if err := app.Listen(fmt.Sprintf(":%d", cfg.Port)); err != nil {
 		return err
 	}
 

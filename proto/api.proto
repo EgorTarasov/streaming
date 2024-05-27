@@ -56,7 +56,8 @@ enum Status {
 message GetProcessingStatusResponse{
   Status status = 1;
   string error_message = 2;
-  int64 progress = 3; // количество обработанных кадров
+  int64 progress = 3;
+  int64 split_frames = 4;// количество обработанных кадров
 }
 
 message GetProcessingResultResponse {

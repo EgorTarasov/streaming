@@ -1,8 +1,13 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"os/exec"
 	"time"
 
 	"github.com/EgorTarasov/streaming/framer/internal/framer"
@@ -10,6 +15,8 @@ import (
 	"github.com/EgorTarasov/streaming/framer/internal/kafka/writer"
 	"github.com/EgorTarasov/streaming/framer/internal/shared/commands"
 	"github.com/EgorTarasov/streaming/framer/internal/shared/status"
+	"github.com/EgorTarasov/streaming/framer/pkg/infrastructure/minios3"
+	"github.com/minio/minio-go/v7"
 	"github.com/rs/zerolog/log"
 )
 
@@ -32,10 +39,11 @@ type controller struct {
 	f                Framer
 	responseProducer ResponseProducer
 	fp               FrameProducer
+	s3               *minios3.S3
 }
 
-func New(f Framer, rp ResponseProducer, fp FrameProducer) *controller {
-	return &controller{f, rp, fp}
+func New(f Framer, rp ResponseProducer, fp FrameProducer, s3 *minios3.S3) *controller {
+	return &controller{f, rp, fp, s3}
 }
 
 func (c *controller) processFrame(ctx context.Context, frameId int64, videoId int64, frame []byte) {
@@ -158,4 +166,86 @@ func (c *controller) Shutdown(_ context.Context, message reader.CommandMessage) 
 		},
 	}, commands.Shutdown)
 	return err
+}
+
+// GetResultVideo собирает видео из обработанных кадров из s3 хранилища
+// taskId - задача обработки видео потока кадры которого будут составлять итоговое видео
+// возвращает ссылку на видео в s3
+func (c *controller) GetResultVideo(ctx context.Context, taskId int64) (string, error) {
+
+	bucketName := "frames"
+
+	// получение кадров из s3 формат хранения <task_id>/<frame_id>.jpg
+	objChan := c.s3.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Prefix: fmt.Sprintf("%d/", taskId)})
+	tmpDir := "foobarTmp"
+	_ = os.Mkdir(tmpDir, 0755)
+
+	tmpDirVideo := fmt.Sprintf("%s/%d", tmpDir, 9)
+	err := os.Mkdir(tmpDirVideo, 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer func() {
+		if er := os.RemoveAll(tmpDirVideo); er != nil {
+			log.Err(er).Msg("error during deleting temp dir")
+		}
+
+	}()
+
+	for object := range objChan {
+		obj, er := c.s3.GetObject(ctx, bucketName, object.Key, minio.GetObjectOptions{})
+		log.Info().Interface("obj", obj).Msg("new object from s3")
+		if er != nil {
+			log.Err(er).Msg("error during downloading file")
+		}
+		rawFile, er := io.ReadAll(obj)
+		if er != nil {
+			log.Err(er).Str("file_key", object.Key).Msg("err during file retrival")
+		}
+		er = os.WriteFile(fmt.Sprintf("%s/%s", tmpDir, object.Key), rawFile, 0755)
+		if er != nil {
+			fmt.Println(er)
+			log.Err(er).Str("file_key", object.Key).Msg("err saving file")
+		}
+	}
+	videoName := fmt.Sprintf("video_%d.mp4 ", taskId)
+
+	//cmd := exec.Command("ffmpeg", "-framerate", "30", "-pattern_type", "glob", "-i", fmt.Sprintf("%s/*.jpg", tmpDirVideo), "-c:v", "libx264", "-pix_fmt", "yuv420p", videoName)
+	cmd := exec.Command("ffmpeg", "-framerate", "30", "-pattern_type", "glob", "-i", fmt.Sprintf("%s/*.jpg", tmpDirVideo), "-c:v", "libx264", "-pix_fmt", "yuv420p", "out.mp4")
+	defer os.Remove("out.mp4")
+	fmt.Println(cmd)
+	_, err = cmd.Output()
+	if err != nil {
+		log.Err(err).Msg("ffmpeg err")
+		return "", err
+	}
+	videoBytes, err := os.ReadFile("out.mp4")
+	if err != nil {
+		return "", err
+	}
+	log.Info().Str("videoName", videoName).Msg("created name for new video")
+	videoObject, err := c.s3.PutObject(ctx, "videos", videoName, bytes.NewReader(videoBytes), int64(len(videoBytes)), minio.PutObjectOptions{ContentType: "video/mp4"})
+	if err != nil {
+		return "", err
+	}
+
+	videoUrl, err := c.s3.PresignedGetObject(ctx, "videos", videoObject.Key, time.Duration(time.Hour*48), url.Values{})
+	if err != nil {
+		log.Err(err).Msg("err getting video url")
+	}
+
+	// TODO: retry for sending message
+	err = c.responseProducer.SendMessage(writer.CommandResponseMessage{
+		VideoId: taskId,
+		Metadata: struct {
+			Url string `json:"ul"`
+		}{
+			Url: videoUrl.String(),
+		},
+	}, commands.GetResultVideo)
+	if err != nil {
+		log.Err(err).Msg("err sending response to response channel")
+	}
+
+	return videoUrl.String(), nil
 }

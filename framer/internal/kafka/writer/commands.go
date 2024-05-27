@@ -39,7 +39,7 @@ func NewCommandSender(producer *kafka.Producer, topic string) *CommandResponseSe
 
 // SendMessage отправка полученного кадра
 func (s *CommandResponseSender) SendMessage(message CommandResponseMessage, msgType string) error {
-	if msgType != commands.StatusMsgType && msgType != commands.ResponseMsgType && msgType != commands.HealthCheck && msgType != commands.Add && msgType != commands.Remove {
+	if msgType != commands.StatusMsgType && msgType != commands.ResponseMsgType && msgType != commands.HealthCheck && msgType != commands.Add && msgType != commands.Remove && msgType != commands.GetResultVideo {
 		return fmt.Errorf("invalid message type")
 	}
 

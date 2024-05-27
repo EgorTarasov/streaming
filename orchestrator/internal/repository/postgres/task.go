@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/EgorTarasov/streaming/orchestrator/pkg/db"
 )
@@ -47,4 +48,22 @@ func (tr *TaskRepo) UpdatePredictedFrames(ctx context.Context, id int64, frames 
 		return err
 	}
 	return nil
+}
+
+// TODO: move to models
+type TaskStatusDao struct {
+	VideoId         int64     `db:"id"`
+	SplitFrames     int64     `db:"split_frames"`
+	ProcessedFrames int64     `db:"predicted_frames"`
+	Status          string    `db:"status"`
+	CreatedAt       time.Time `db:"created_at"`
+}
+
+func (tr *TaskRepo) GetTaskStatus(ctx context.Context, id int64) (TaskStatusDao, error) {
+	query := `select id, split_frames, predicted_frames, status, created_at from tasks where id = $1;`
+	var task TaskStatusDao
+	if err := tr.db.Get(ctx, &task, query, id); err != nil {
+		return task, err
+	}
+	return task, nil
 }

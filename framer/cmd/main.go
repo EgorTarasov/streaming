@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/EgorTarasov/streaming/framer/internal"
 	"github.com/rs/zerolog"
@@ -13,6 +12,9 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	defer cancel()
 	if err := internal.Run(ctx); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+	//if err := internal.TestS3(ctx); err != nil {
+	//	panic(err)
+	//}
 }

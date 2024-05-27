@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	Port    int          `yaml:"port" env:"PORT"`
+	Port    int          `yaml:"port" env:"API_PORT"`
 	Service Orchestrator `yaml:"orchestrator"`
 }
 

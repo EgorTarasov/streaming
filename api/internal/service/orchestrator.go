@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/EgorTarasov/streaming/api/internal/stubs"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type orchestrator struct {
@@ -16,7 +17,7 @@ type orchestrator struct {
 }
 
 func New(host string, port int) *orchestrator {
-	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", host, port))
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", host, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(fmt.Sprintf("err in init with %v %v", host, err))
 	}

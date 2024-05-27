@@ -25,9 +25,32 @@ func (s *server) StartProcessing(ctx context.Context, in *pb.StartProcessingRequ
 		JobId: newId,
 	}, nil
 }
-func (s *server) GetProcessingStatus(ctx context.Context, in *pb.ProcessIdRequest) (*pb.GetProcessingStatusResponse, error) {
 
-	panic("implement me")
+func mapStatus(status string) pb.Status {
+	switch status {
+	case "PENDING":
+		return pb.Status_PENDING
+	case "PROCESSING":
+		return pb.Status_PROCESSING
+	case "DONE":
+		return pb.Status_DONE
+	case "ERROR":
+		return pb.Status_ERROR
+	}
+	return pb.Status_ERROR
+}
+
+func (s *server) GetProcessingStatus(ctx context.Context, in *pb.ProcessIdRequest) (*pb.GetProcessingStatusResponse, error) {
+	res, err := s.ctrl.GetTaskStatus(ctx, in.JobId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetProcessingStatusResponse{
+		Status:       mapStatus(res.Status),
+		ErrorMessage: "",
+		Progress:     res.ProcessedFrames,
+		SplitFrames:  res.SplitFrames,
+	}, nil
 }
 func (s *server) GetProcessingResult(ctx context.Context, in *pb.ProcessResultRequest) (*pb.GetProcessingResultResponse, error) {
 	panic("implement me")

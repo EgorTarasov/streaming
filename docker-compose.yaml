@@ -15,6 +15,21 @@ volumes:
 
 
 services:
+  api:
+    container_name: "api"
+    build:
+      context: api/
+      dockerfile: Dockerfile
+    restart: always
+    command:
+      - ./main
+    environment:
+      - API_PORT=8080
+      - ORCHESTRATOR_HOST=orchestrator
+      - ORCHESTRATOR_PORT=9999
+    ports:
+      - "8080:8080"
+
   orchestrator:
     container_name: "orchestrator"
     build:
@@ -25,6 +40,17 @@ services:
     ports:
       - "9999:9999"
     restart: always
+
+  response_manager:
+    container_name: "response_manager"
+    build:
+      context: responser/
+      dockerfile: Dockerfile
+    restart: always
+    command:
+      - ./main
+
+
 
   framer:
     build:

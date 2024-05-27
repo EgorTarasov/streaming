@@ -54,7 +54,9 @@ class Predictor:
     def __init__(self, model: YOLO) -> None:
         self.model = model
 
-    def inference(self, img: MatLike) -> np.ndarray[tp.Any, np.dtype[tp.Any]]:
+    def inference(
+        self, img: MatLike
+    ) -> tuple[np.ndarray[tp.Any, np.dtype[tp.Any]], dict[tp.Any, tp.Any]]:
         """Производит inference модели на изображении и возвращает изображение с наложенными bounding box'ами
 
         Args:
@@ -64,20 +66,31 @@ class Predictor:
             np.ndarray[tp.Any, np.dtype[tp.Any]]: изображение с наложенными bounding box'ами
         """
         results = self.model(img)
-
+        # save yolo boxes into json format
+        # cls - class, xyxy - coordinates
+        # json_result: dict[str, tp.Any] = {}
+        json_results: dict[str, tp.Any] = {}
         for r in results:
             annotator = Annotator(img)
 
             boxes = r.boxes
             for box in boxes:
+
                 b = box.xyxy[0]
-                c = box.cls
+                c = self.model.names[int(box.cls)]
+                list_box = b.tolist()
+                if c in json_results.keys():
+                    print(type(list_box), type(b))
+                    json_results[c].append(list_box)
+                else:
+                    json_results[c] = [list_box]
+
                 annotator.box_label(
                     box=b,
-                    label=self.model.names[int(c)],
+                    label=c,
                 )
 
-        return annotator.result()
+        return annotator.result(), json_results
 
 
 class Controller:
@@ -98,7 +111,7 @@ class Controller:
         self.removed_video_ids = set()
         self.video_states: dict[int, int] = {}
 
-    def _process_image(self, img: str) -> str:
+    def _process_image(self, img: str) -> tuple[str, dict[str, tp.Any]]:
         """Производит inference модели на изображении и возвращает результаты в виде base64 строки
 
         Args:
@@ -112,9 +125,12 @@ class Controller:
 
         img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        result = self.predictor.inference(img_np)
-        return base64.b64encode(cv2.imencode(".jpg", result)[1]).decode(  # type: ignore
-            "utf-8"
+        result, json_results = self.predictor.inference(img_np)
+        return (
+            base64.b64encode(cv2.imencode(".jpg", result)[1]).decode(  # type: ignore
+                "utf-8"
+            ),
+            json_results,
         )
 
     def _send_heartbeat(self, video_id: int, frames: int) -> None:
@@ -153,7 +169,9 @@ class Controller:
             value={"VideoId": video_id, "Status": "DONE"},
         )
 
-    def _send_prediction_result(self, video_id: int, frame_id: str, frame: str) -> None:
+    def _send_prediction_result(
+        self, video_id: int, frame_id: str, frame: str, json_metadata: dict
+    ) -> None:
         """Отправляет результаты предсказаний
 
         Args:
@@ -168,7 +186,7 @@ class Controller:
                 VideoId=video_id,
                 FrameId=frame_id,
                 Frame=frame,
-                Results={},
+                Results=json_metadata,
             ),
         )
 
@@ -182,11 +200,12 @@ class Controller:
                 if message.value["VideoId"] not in self.video_states:
                     self.video_states[message.value["VideoId"]] = 0
 
-                result = self._process_image(message.value["RawFrame"])
+                result, metadata = self._process_image(message.value["RawFrame"])
                 self._send_prediction_result(
                     video_id=message.value["VideoId"],
                     frame_id=message.value["FrameId"],
                     frame=result,
+                    json_metadata=metadata,
                 )
 
                 self.video_states[message.value["VideoId"]] += 1

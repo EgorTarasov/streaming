@@ -2,10 +2,11 @@ package commands
 
 // Framer commands
 const (
-	Status   = "status"
-	Add      = "add"
-	Remove   = "remove"
-	Shutdown = "shutdown"
+	Status         = "status"
+	Add            = "add"
+	Remove         = "remove"
+	GetResultVideo = "video"
+	Shutdown       = "shutdown"
 )
 
 // Framer response msg statuses

@@ -2,11 +2,12 @@
 FROM golang:1.22-alpine AS builder
 RUN apk add --update make git curl
 
-ARG MODULE_NAME=github.com/EgorTarasov/streaming/framer
+ARG MODULE_NAME=github.com/EgorTarasov/streaming/responser
 
 RUN apk upgrade --update-cache --available && \
     rm -rf /var/cache/apk/*
 COPY Makefile /home/${MODULE_NAME}/Makefile
+
 COPY go.mod /home/${MODULE_NAME}/go.mod
 COPY go.sum /home/${MODULE_NAME}/go.sum
 
@@ -18,13 +19,11 @@ RUN make build
 
 # Service
 FROM alpine:latest as server
-ARG MODULE_NAME=github.com/EgorTarasov/streaming/framer
+ARG MODULE_NAME=github.com/EgorTarasov/streaming/responser
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
-RUN apk add --no-cache ffmpeg
 
 COPY --from=builder /home/${MODULE_NAME}/bin/main .
 COPY --from=builder /home/${MODULE_NAME}/config.yaml .
-
 RUN chown root:root main

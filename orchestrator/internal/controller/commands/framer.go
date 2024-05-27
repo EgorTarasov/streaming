@@ -5,4 +5,5 @@ const (
 	FramerRemoveTask     = "remove"
 	FramerStatusTask     = "status"
 	PredictionRemoveTask = "remove"
+	GetResultVideoTask   = "video"
 )
