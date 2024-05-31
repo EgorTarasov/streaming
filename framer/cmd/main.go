@@ -14,7 +14,7 @@ func main() {
 	if err := internal.Run(ctx); err != nil {
 		panic(err)
 	}
-	//if err := internal.TestS3(ctx); err != nil {
-	//	panic(err)
-	//}
+	// if err := internal.TestS3(ctx); err != nil {
+	// 	panic(err)
+	// }
 }

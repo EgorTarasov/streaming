@@ -67,3 +67,21 @@ func (tr *TaskRepo) GetTaskStatus(ctx context.Context, id int64) (TaskStatusDao,
 	}
 	return task, nil
 }
+
+func (tr *TaskRepo) SaveResultVideo(ctx context.Context, videoId int64, s3Url string) (int64, error) {
+	var newId int64
+	query := `insert into result_video(task_id, video_url) values ($1, $2) returning id;`
+	if err := tr.db.Get(ctx, &newId, query, videoId, s3Url); err != nil {
+		return newId, err
+	}
+	return newId, nil
+}
+
+func (tr *TaskRepo) GetResultVideo(ctx context.Context, videoId int64) (string, error) {
+	var s3Url string
+	query := `select video_url from result_video where task_id = $1 order by created_at desc limit 1;`
+	if err := tr.db.Get(ctx, &s3Url, query, videoId); err != nil {
+		return s3Url, err
+	}
+	return s3Url, nil
+}

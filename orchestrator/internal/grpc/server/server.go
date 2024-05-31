@@ -53,7 +53,13 @@ func (s *server) GetProcessingStatus(ctx context.Context, in *pb.ProcessIdReques
 	}, nil
 }
 func (s *server) GetProcessingResult(ctx context.Context, in *pb.ProcessResultRequest) (*pb.GetProcessingResultResponse, error) {
-	panic("implement me")
+	url, err := s.ctrl.GetProcessingResult(ctx, in.JobId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetProcessingResultResponse{
+		Result: url,
+	}, nil
 }
 func (s *server) StopProcessing(ctx context.Context, in *pb.ProcessIdRequest) (*pb.StopProcessingResponse, error) {
 	if err := s.ctrl.RemoveTask(ctx, in.JobId); err != nil {

@@ -33,6 +33,7 @@ func Run(ctx context.Context) error {
 	producer := kafka.MustNewAsyncProducer(&cfg.Consumer, sarama.NewRandomPartitioner, 0)
 	// FIXME: read Only New messages from responses topic
 	repo := postgres.New(pg)
+
 	ctrl := controller.New(repo, s3, consumer, producer)
 	s := server.New(ctrl)
 	gs := grpc.NewServer()

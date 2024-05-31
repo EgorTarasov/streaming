@@ -1,0 +1,62 @@
+networks:
+  streaming_data:
+    driver: bridge
+
+
+volumes:
+  zoo_data:
+  zoo_logs:
+  zoo_secret:
+  kafka1_data:
+  s3_data:
+  postgres-data:
+
+services:
+  s3:
+    image: minio/minio
+    container_name: s3
+    ports:
+      - 54000:9000
+      - 54001:9001
+    volumes:
+      - s3_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    command: server --console-address ":9001" /data
+
+  postgres:
+    image: postgres:16
+    container_name: database
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - 54002:5432
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper:2888:3888
+    healthcheck:
+      test: echo stat | nc localhost 2181
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    ports:
+      - 2181:2181
+      - 2888:2888
+      - 3888:3888
+    volumes:
+       - zoo_logs:/var/lib/zookeeper/log
+       - zoo_secret:/etc/zookeeper/secrets
+       - zoo_data:/var/lib/zookeeper/data

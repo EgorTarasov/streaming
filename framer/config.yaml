@@ -1,0 +1,16 @@
+s3:
+  host: 127.0.0.1 #s3 127.0.0.1
+  port: 9000
+  access_key: Yv8wguEkKAqeyNEsbXpH
+  secret_key: JJnFCtqeR3PaGqv1mCMFKmXWa69khClLqG3u21GA
+  ssl: false
+  buckets:
+    - name: dev
+      region: us-east-1
+      lock: false
+
+kafka:
+  cmd-topic: "frames"
+  response-topic: "responses"
+  result-topic: "frames-splitted"
+  kafka-broker:  "127.0.0.1:9091" # "kafka1:29091"

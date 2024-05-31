@@ -12,6 +12,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type processStreamRequest struct {
+	Url   string `json:"url"`
+	Title string `json:"tittle"`
+}
+
 func Run(ctx context.Context) error {
 	app := fiber.New()
 
@@ -26,6 +31,7 @@ func Run(ctx context.Context) error {
 	app.Post("/start/video", func(c *fiber.Ctx) error {
 		multiPartFile, err := c.FormFile("video")
 		if err != nil {
+
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
 			})
@@ -56,19 +62,14 @@ func Run(ctx context.Context) error {
 	})
 
 	app.Post("/start/stream", func(c *fiber.Ctx) error {
-		rtspUrl := c.Query("url")
-		if rtspUrl == "" {
+		var body processStreamRequest
+		if err := c.BodyParser(&body); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "url is required",
+				"error": err.Error(),
 			})
 		}
-		title := c.Query("title")
-		if title == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "title is required",
-			})
-		}
-		jobID, err := client.StartProcessingStream(ctx, rtspUrl, title)
+
+		jobID, err := client.StartProcessingStream(ctx, body.Url, body.Title)
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -112,6 +113,25 @@ func Run(ctx context.Context) error {
 			})
 		}
 		return c.SendStatus(fiber.StatusOK)
+	})
+
+	app.Get("/result/:job_id", func(c *fiber.Ctx) error {
+		rawJobID := c.Params("job_id")
+		jobId, err := strconv.ParseInt(rawJobID, 10, 64)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		url, err := client.GetProcessingResult(ctx, jobId)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		return c.JSON(fiber.Map{
+			"url": url,
+		})
 	})
 
 	if err := app.Listen(fmt.Sprintf(":%d", cfg.Port)); err != nil {

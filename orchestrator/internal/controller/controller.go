@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -21,8 +22,7 @@ type Controller struct {
 	repo     *postgres.TaskRepo // TODO: move to interface
 	consumer *kafka.Consumer
 	producer *kafka.AsyncProducer
-
-	s3 minios3.S3
+	s3       minios3.S3
 }
 
 func New(repo *postgres.TaskRepo, s3 minios3.S3, consumer *kafka.Consumer, producer *kafka.AsyncProducer) *Controller {
@@ -70,6 +70,13 @@ func (c *Controller) AddTask(ctx context.Context, title, rtspUrl string) (int64,
 	})
 	return id, nil
 }
+
+// {
+//   "VideoId": 9,
+//   "Metadata": {
+//     "ul": "http://127.0.0.1:9000/videos/video_9.mp4%20?X-Amz-Algorithm\u003dAWS4-HMAC-SHA256\u0026X-Amz-Credential\u003dYv8wguEkKAqeyNEsbXpH%2F20240527%2Fus-east-1%2Fs3%2Faws4_request\u0026X-Amz-Date\u003d20240527T064823Z\u0026X-Amz-Expires\u003d172800\u0026X-Amz-SignedHeaders\u003dhost\u0026X-Amz-Signature\u003dd6f070fe818e106c8abf6371b3f8b29fc11082ec0d991581a450c9647f114313"
+//   }
+// }
 
 // RemoveTask removes task from the list of active tasks
 func (c *Controller) RemoveTask(ctx context.Context, id int64) error {
@@ -157,7 +164,30 @@ func (c *Controller) GetTaskStatus(ctx context.Context, taskId int64) (TaskStatu
 		Status:          res.Status,
 		CreatedAt:       res.CreatedAt,
 	}, nil
+}
 
+// GetProcessingResult
+func (c *Controller) GetProcessingResult(ctx context.Context, taskId int64) (string, error) {
+	// sends message to kafka with framer if video not in db otherWise
+	url, err := c.repo.GetResultVideo(ctx, taskId)
+	if err != nil {
+		cmdMsg := FramerCommandMessage{
+			RtspUrl: "",
+			Command: commands.GetResultVideoTask,
+			VideoId: taskId,
+		}
+		jsonBytes, err := json.Marshal(cmdMsg)
+		if err != nil {
+			return "", err
+		}
+		c.producer.SendAsyncMessage(ctx, &sarama.ProducerMessage{
+			Topic: "frames",
+			Key:   nil,
+			Value: sarama.ByteEncoder(jsonBytes),
+		})
+		return "", fmt.Errorf("video not processed")
+	}
+	return url, nil
 }
 
 func getServiceType(headers []*sarama.RecordHeader) string {

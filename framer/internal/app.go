@@ -130,6 +130,7 @@ func TestS3(ctx context.Context) error {
 	fmt.Println(cfg.S3)
 
 	log.Info().Msg("test of s3 Storage")
+
 	bucketName := "frames"
 	objChan := s3.ListObjects(ctx, bucketName, minio.ListObjectsOptions{Prefix: "9/"})
 	tmpDir := "foobarTmp"

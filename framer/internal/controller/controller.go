@@ -238,7 +238,7 @@ func (c *controller) GetResultVideo(ctx context.Context, taskId int64) (string, 
 	err = c.responseProducer.SendMessage(writer.CommandResponseMessage{
 		VideoId: taskId,
 		Metadata: struct {
-			Url string `json:"ul"`
+			Url string `json:"url"`
 		}{
 			Url: videoUrl.String(),
 		},

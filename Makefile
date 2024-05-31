@@ -31,8 +31,8 @@ ifeq (,$(wildcard .env))
     POSTGRES_USER := 'etarasov'
     POSTGRES_PASSWORD := 'Do-Megor2023'
     POSTGRES_DB := 'dev'
-    POSTGRES_HOST := '127.0.0.1'
-    POSTGRES_PORT := 5432
+    POSTGRES_HOST := '192.168.1.70'
+    POSTGRES_PORT := 54002
 else
     # Иначе, подключаем переменные из файла .env
     include .env

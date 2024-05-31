@@ -73,8 +73,17 @@ func (o *orchestrator) GetProcessingStatus(ctx context.Context, id int64) (Proce
 	}, nil
 }
 
-func (o *orchestrator) GetProcessingResult(ctx context.Context, id int64) error {
-	panic("not implemented")
+func (o *orchestrator) GetProcessingResult(ctx context.Context, id int64) (string, error) {
+	resp, err := o.client.GetProcessingResult(ctx, &pb.ProcessResultRequest{
+		JobId:      id,
+		StartFrame: 0,
+		EndFrame:   0,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.Result, err
+
 }
 
 func (o *orchestrator) StopProcessing(ctx context.Context, id int64) error {

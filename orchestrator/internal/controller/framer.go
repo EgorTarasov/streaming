@@ -84,6 +84,16 @@ func (c *Controller) processFramer(ctx context.Context, message *sarama.Consumer
 			log.Error().Err(err).Msg("failed to update status")
 			return
 		}
+	case commands.GetResultVideoTask:
+		var videoResponse messages.VideoResultMessage
+		if err := json.Unmarshal(message.Value, &videoResponse); err != nil {
+			log.Error().Err(err).Msg("failed to unmarshal videoResponse message")
+		}
+		if id, err := c.repo.SaveResultVideo(ctx, videoResponse.VideoId, videoResponse.Metadata.Url); err != nil {
+			log.Error().Err(err).Int64("taskId", id).Msg("failed to update status")
+			return
+		}
+
 	default:
 		var jsonValue interface{}
 		if err := json.Unmarshal(message.Value, &jsonValue); err != nil {
